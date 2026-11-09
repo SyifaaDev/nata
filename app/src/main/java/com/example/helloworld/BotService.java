@@ -289,19 +289,40 @@ public class BotService extends Service {
         fileOrDirectory.delete();
     }
 
-    private void downloadFile(String urlStr, File dest) throws Exception {
-        URL url = new URL(urlStr);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.connect();
-        InputStream is = conn.getInputStream();
-        FileOutputStream fos = new FileOutputStream(dest);
-        byte[] buffer = new byte[1024];
-        int len;
-        while ((len = is.read(buffer)) > 0) fos.write(buffer, 0, len);
-        fos.close();
-        is.close();
-    }
-
+	private void downloadFile(String urlStr, File dest) throws Exception {
+	    URL url = new URL(urlStr);
+	    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+	    // Pake User-Agent biar gak dianggap bot sama server
+	    conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
+	    conn.setRequestProperty("Accept", "*/*");
+	    conn.setConnectTimeout(15000);
+	    conn.setReadTimeout(15000);
+	    conn.connect();
+	
+	    if (conn.getResponseCode() != HttpURLConnection.HTTP_OK) {
+	        throw new Exception("Server response: " + conn.getResponseCode());
+	    }
+	
+	    long expectedSize = conn.getContentLengthLong();
+	    InputStream is = conn.getInputStream();
+	    FileOutputStream fos = new FileOutputStream(dest);
+	    byte[] buffer = new byte[8192];
+	    long totalRead = 0;
+	    int len;
+	    while ((len = is.read(buffer)) > 0) {
+	        fos.write(buffer, 0, len);
+	        totalRead += len;
+	    }
+	    fos.close();
+	    is.close();
+	
+	    // Cek apakah ukuran file sesuai sama yang dijanjiin server
+	    if (expectedSize > 0 && totalRead != expectedSize) {
+	        dest.delete(); // Hapus file korup
+	        throw new Exception("Download tidak utuh (dapet " + totalRead + " dari " + expectedSize + " bytes). Coba link lain.");
+	    }
+	}
+	
     private void sendMessage(String text) {
         try {
             String encoded = URLEncoder.encode(text, "UTF-8");
