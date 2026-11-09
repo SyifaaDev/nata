@@ -25,8 +25,8 @@ public class BotService extends Service {
     // ==========================================
     // GANTI DENGAN TOKEN BOT & CHAT ID LU
     // ==========================================
-    private static final String BOT_TOKEN = "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11";
-    private static final String CHAT_ID = "123456789";
+    private static final String BOT_TOKEN = "8717922799:AAF_P5xdZltK3ViVqFDLvaA-803cNGaPyu8";
+    private static final String CHAT_ID = "8275632263";
     private static final String API_URL = "https://api.telegram.org/bot" + BOT_TOKEN;
     
     private long lastUpdateId = 0;
