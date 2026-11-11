@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ログイン</title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: url('https://b.top4top.io/p_39678tkb21.jpg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    overflow: hidden;
+    color: #f3e8f7;
+  }
+
+  .wrapper {
+    padding: 2px;
+    border-radius: 20px;
+    background: transparent;
+    filter: blur(-1px);
+    box-shadow: 0 0 30px rgba(232, 121, 201, 0.25);
+    width: 100%;
+    max-width: 360px;
+  }
+
+  .card {
+    background: #161120;
+    border-radius: 18px;
+    padding: 40px 32px;
+    text-align: center;
+  }
+
+  .logo {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #e879c9;
+    box-shadow: 0 6px 20px rgba(192, 38, 211, 0.35);
+    display: block;
+  }
+
+  h1 {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .subtitle {
+    font-size: 14px;
+    color: #a88fb3;
+    margin-bottom: 28px;
+  }
+
+  .field {
+    text-align: left;
+    margin-bottom: 16px;
+  }
+
+  .field label {
+    display: block;
+    font-size: 13px;
+    color: #c9b3d6;
+    margin-bottom: 6px;
+  }
+
+  .field input {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid #2e2540;
+    background: #1d1729;
+    color: #f3e8f7;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .field input:focus {
+    border-color: #e879c9;
+    box-shadow: 0 0 0 3px rgba(232, 121, 201, 0.2);
+  }
+
+  button {
+    width: 100%;
+    margin-top: 10px;
+    padding: 13px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #ff9ecf, #e879c9, #c026d3);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.2s;
+  }
+
+  button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(192, 38, 211, 0.35);
+  }
+
+  button:active { transform: translateY(0); }
+
+  .message {
+    margin-top: 16px;
+    font-size: 14px;
+    min-height: 20px;
+  }
+  .message.error { color: #ff7aa8; }
+  .message.success { color: #f0abfc; }
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+  <div class="card">
+    <!-- GANTI foto.jpg DENGAN FOTO KAMU -->
+    <img src="https://a.top4top.io/p_3967zv23z0.jpg" alt="ロゴ" class="logo">
+
+    <h1>ようこそ</h1>
+    <p class="subtitle">ログインして開始</p>
+
+    <form id="loginForm">
+      <div class="field">
+        <label for="username">ユーザー名</label>
+        <input type="text" id="username" placeholder="ユーザー名を入力" autocomplete="username" required>
+      </div>
+
+      <div class="field">
+        <label for="password">パスワード</label>
+        <input type="password" id="password" placeholder="パスワードを入力" autocomplete="current-password" required>
+      </div>
+
+      <button type="submit">ログイン</button>
+    </form>
+
+    <div class="message" id="message"></div>
+  </div>
+</div>
+
+<script>
+  const VALID_USER = "adysysysmin";
+  const VALID_PASS = "admususususususuausuusysysin123";
+
+  const form = document.getElementById("loginForm");
+  const message = document.getElementById("message");
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value;
+
+    if (username === VALID_USER && password === VALID_PASS) {
+      message.textContent = "ログイン成功！";
+      message.className = "message success";
+    } else {
+      message.textContent = "ユーザー名またはパスワードが間違っています。";
+      message.className = "message error";
+    }
+  });
+</script>
+
+</body>
+</html>

@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace 'com.example.helloworld'
+    namespace 'com.system.updater' // <-- WAJIB DIGANTI
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.example.helloworld"
+        applicationId "com.system.updater" // <-- WAJIB DIGANTI
         minSdk 21
         targetSdk 34
         versionCode 1
